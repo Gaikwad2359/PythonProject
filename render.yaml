@@ -11,9 +11,4 @@ services:
       apt-get update
       apt-get install -y google-chrome-stable
       pip install -r requirements.txt
-    startCommand: bash start.sh
-    envVars:
-      - key: RENDER
-        value: true
-      - key: PORT
-        value: 10000
+    startCommand: uvicorn fresh_glassdoor_scraper:app --host 0.0.0.0 --port $PORT
