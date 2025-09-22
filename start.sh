@@ -1,6 +1,2 @@
-my-glassdoor-app/
-│
-├── fresh_glssdoor_scraper.py
-├── requirements.txt
-├── start.sh
-└── render.yaml   (optional but recommended)
+#!/usr/bin/env bash
+uvicorn fresh_glssdoor_scraper:app --host 0.0.0.0 --port $PORT
