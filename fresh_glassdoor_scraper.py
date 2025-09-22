@@ -1,11 +1,21 @@
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from fastapi.middleware.cors import CORSMiddleware
 import undetected_chromedriver as uc
 from bs4 import BeautifulSoup
 import time
 import os
 
 app = FastAPI(title="Glassdoor Scraper API", version="1.0.0")
+
+# Add CORS middleware
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 @app.get("/")
 def read_root():
@@ -18,7 +28,7 @@ def scrape_data(keyword: str):
         glassdoor_jobs = []
 
         options = uc.ChromeOptions()
-        options.add_argument('--headless')  # Enable headless for Render
+        options.add_argument('--headless')
         options.add_argument('--no-sandbox')
         options.add_argument('--disable-dev-shm-usage')
         options.add_argument('--disable-gpu')
@@ -34,6 +44,7 @@ def scrape_data(keyword: str):
 
         driver = None
         try:
+            print("Initializing Chrome driver...")
             driver = uc.Chrome(options=options)
             driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
             
@@ -43,7 +54,7 @@ def scrape_data(keyword: str):
             driver.get(glassdoor_url)
             print("Page loaded, waiting for content...")
             
-            time.sleep(8)  # Increased wait time for Render
+            time.sleep(8)
             
             soup = BeautifulSoup(driver.page_source, 'html.parser')
             job_cards = soup.select('li[data-test="jobListing"]')
@@ -56,13 +67,14 @@ def scrape_data(keyword: str):
                 location_tag = job.select_one('div.JobCard_location__Ds1fM[data-test="emp-location"]')
                 apply_link_tag = title_tag
                 
-                if title_tag and company_tag:  # Only add if we have basic info
+                if title_tag and company_tag:
+                    apply_link = f"https://www.glassdoor.co.in{apply_link_tag['href']}" if apply_link_tag and apply_link_tag.has_attr('href') else ''
                     glassdoor_jobs.append({
                         'jobTitle': title_tag.text.strip() if title_tag else '',
                         'company': company_tag.text.strip() if company_tag else '',
                         'location': location_tag.text.strip() if location_tag else '',
                         'experience': '',
-                        'applyLink': f"https://www.glassdoor.co.in{apply_link_tag['href']}" if apply_link_tag and apply_link_tag.has_attr('href') else '',
+                        'applyLink': apply_link,
                         'platform': 'Glassdoor'
                     })
 
@@ -98,7 +110,10 @@ def scrape_data(keyword: str):
 def health_check():
     return {"status": "healthy", "service": "Glassdoor Scraper"}
 
+# Add this to ensure proper startup
 if __name__ == "__main__":
     import uvicorn
     port = int(os.environ.get("PORT", 8000))
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    host = "0.0.0.0" if os.environ.get("RENDER") == "true" else "127.0.0.1"
+    print(f"Starting server on {host}:{port}")
+    uvicorn.run(app, host=host, port=port)
