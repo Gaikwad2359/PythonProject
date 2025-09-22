@@ -6,3 +6,5 @@ beautifulsoup4==4.12.2
 requests==2.31.0
 lxml>=5.2.0
 setuptools
+httpx==0.25.0         # for FastAPI async HTTP client support (optional but good to have)
+python-multipart==0.0.6 # for form data parsing if you ever accept uploads
